@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard - Anomaly Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-title">
+                <h1>🌤️ Weather Station AI Monitoring</h1>
+            </div>
+            <div class="header-nav">
+                <a href="#">Home</a>
+            </div>
+        </header>
+
+        <!-- Location Selector Dropdown -->
+        <div class="station-selector-card" style="background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin: 20px 0; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <label for="stationSelect" style="font-weight: bold; color: #333; margin-right: 10px;">📍 Select Weather Station:</label>
+                <select id="stationSelect" onchange="changeStationData()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; background: #f9f9f9; cursor: pointer;">
+                    <option value="chennai">Chennai Coastal Station (#AWS-01)</option>
+                    <option value="ooty">Ooty Hill Station (#AWS-02)</option>
+                    <option value="madurai">Madurai Agricultural Farm (#AWS-03)</option>
+                    <option value="erode">Erode Turmeric & Textile Hub (#AWS-04)</option>
+                    <option value="namakkal">Namakkal Poultry & Transport Zone (#AWS-05)</option>
+                </select>
+            </div>
+            <div id="stationStatusBadge" style="background: #e6f4ea; color: #137333; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;">
+                Status: Online & Monitoring
+            </div>
+        </div>
+
+        <!-- Live Sensor Cards -->
+        <div class="cards-grid">
+            <div class="card">
+                <h3>TEMPERATURE</h3>
+                <p id="cardTemp" class="card-value">30.4°C</p>
+            </div>
+            <div class="card">
+                <h3>HUMIDITY</h3>
+                <p id="cardHumid" class="card-value">60.1%</p>
+            </div>
+            <div class="card">
+                <h3>WIND SPEED</h3>
+                <p id="cardWind" class="card-value">14.2 km/h</p>
+            </div>
+            <div class="card">
+                <h3>RAINFALL</h3>
+                <p id="cardRain" class="card-value">0.2 mm</p>
+            </div>
+            <div class="card">
+                <h3>AIR PRESSURE</h3>
+                <p id="cardPressure" class="card-value">1010.5 hPa</p>
+            </div>
+        </div>
+
+        <!-- Demo Mode Panel -->
+        <div class="demo-panel" style="background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 25px;">
+            <h3>🔬 Demo Mode: Test Weather Reading</h3>
+            <form id="anomalyForm">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Temperature (°C):</label><br>
+                    <input type="number" step="0.1" id="temp" value="31.0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Humidity (%):</label><br>
+                    <input type="number" step="0.1" id="humidity" value="58.0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Wind Speed (km/h):</label><br>
+                    <input type="number" step="0.1" id="wind_speed" value="9.1" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Rainfall (mm):</label><br>
+                    <input type="number" step="0.1" id="rainfall" value="0.0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Air Pressure (hPa):</label><br>
+                    <input type="number" step="0.1" id="air_pressure" value="1011.0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;" required>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 15px; padding: 10px 20px; background: #1a73e8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Analyze Weather Data</button>
+            </form>
+            <div id="resultBox" style="margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 5px; display: none;"></div>
+        </div>
+
+        <!-- Dynamic Hourly Weather Readings Table with Emojis -->
+        <div class="table-section" style="background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 25px;">
+            <h3 id="tableTitle">🕒 Chennai Station - Hourly Weather Breakdown</h3>
+            <table class="data-table" style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #eee; text-align: left;">
+                        <th style="padding: 10px;">Time</th>
+                        <th style="padding: 10px;">Temp</th>
+                        <th style="padding: 10px;">Humidity</th>
+                        <th style="padding: 10px;">Wind</th>
+                        <th style="padding: 10px;">Rain</th>
+                        <th style="padding: 10px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="hourlyTableBody">
+                    <!-- Default loaded with Chennai data -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Multi-station data including Chennai, Ooty, Madurai, Erode, Namakkal
+        const stationData = {
+            chennai: {
+                title: "🕒 Chennai Coastal Station - Hourly Weather Breakdown",
+                cards: { temp: "30.4°C", hum: "60.1%", wind: "14.2 km/h", rain: "0.2 mm 🌧️", pressure: "1010.5 hPa" },
+                hourly: [
+                    { time: "9 AM", temp: "28.5°C ☀️", hum: "65%", wind: "12 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "11 AM", temp: "30.4°C ☀️", hum: "60.1%", wind: "14.2 km/h", rain: "0.2 mm 🌧️", status: "Normal 🟢" },
+                    { time: "1 PM", temp: "32.2°C ☀️", hum: "55.4%", wind: "8 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "3 PM", temp: "92°C 🔥", hum: "30%", wind: "45 km/h 💨", rain: "15 mm ⛈️", status: "Anomaly 🔴" },
+                    { time: "5 PM", temp: "29°C ⛅", hum: "62%", wind: "11 km/h", rain: "0 mm", status: "Normal 🟢" }
+                ]
+            },
+            ooty: {
+                title: "🕒 Ooty Hill Station - Hourly Weather Breakdown",
+                cards: { temp: "18.2°C", hum: "85.0%", wind: "22.5 km/h", rain: "4.1 mm 🌧️", pressure: "1002.1 hPa" },
+                hourly: [
+                    { time: "9 AM", temp: "15.0°C ☁️", hum: "90%", wind: "18 km/h", rain: "2 mm 🌧️", status: "Normal 🟢" },
+                    { time: "11 AM", temp: "18.2°C ⛅", hum: "85%", wind: "22.5 km/h", rain: "4.1 mm 🌧️", status: "Normal 🟢" },
+                    { time: "1 PM", temp: "19.5°C ⛅", hum: "80%", wind: "15 km/h", rain: "1 mm 🌧️", status: "Normal 🟢" },
+                    { time: "3 PM", temp: "8°C ❄️", hum: "95%", wind: "65 km/h 💨", rain: "35 mm 🌧️", status: "Anomaly 🔴" },
+                    { time: "5 PM", temp: "16.1°C 🌧️", hum: "88%", wind: "20 km/h", rain: "3 mm 🌧️", status: "Normal 🟢" }
+                ]
+            },
+            madurai: {
+                title: "🕒 Madurai Agricultural Farm - Hourly Weather Breakdown",
+                cards: { temp: "36.8°C", hum: "42.3%", wind: "6.5 km/h", rain: "0.0 mm ☀️", pressure: "1013.2 hPa" },
+                hourly: [
+                    { time: "9 AM", temp: "32.0°C ☀️", hum: "50%", wind: "5 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "11 AM", temp: "36.8°C ☀️", hum: "42.3%", wind: "6.5 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "1 PM", temp: "40.1°C ☀️", hum: "38%", wind: "7 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "3 PM", temp: "65°C 🔥", hum: "15%", wind: "50 km/h 💨", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "5 PM", temp: "35.5°C ☀️", hum: "45%", wind: "6 km/h", rain: "0 mm", status: "Normal 🟢" }
+                ]
+            },
+            erode: {
+                title: "🕒 Erode Hub - Hourly Weather Breakdown",
+                cards: { temp: "35.2°C", hum: "48.0%", wind: "10.1 km/h", rain: "0.0 mm ☀️", pressure: "1009.8 hPa" },
+                hourly: [
+                    { time: "9 AM", temp: "30.1°C ☀️", hum: "55%", wind: "8 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "11 AM", temp: "35.2°C ☀️", hum: "48%", wind: "10.1 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "1 PM", temp: "38.5°C ☀️", hum: "40%", wind: "12 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "3 PM", temp: "70°C 🔥", hum: "20%", wind: "55 km/h 💨", rain: "0 mm", status: "Anomaly 🔴" },
+                    { time: "5 PM", temp: "34.0°C ☀️", hum: "50%", wind: "9 km/h", rain: "0 mm", status: "Normal 🟢" }
+                ]
+            },
+            namakkal: {
+                title: "🕒 Namakkal Zone - Hourly Weather Breakdown",
+                cards: { temp: "34.5°C", hum: "52.1%", wind: "8.4 km/h", rain: "0.5 mm 🌦️", pressure: "1011.0 hPa" },
+                hourly: [
+                    { time: "9 AM", temp: "29.8°C ☀️", hum: "60%", wind: "7 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "11 AM", temp: "34.5°C ☀️", hum: "52.1%", wind: "8.4 km/h", rain: "0.5 mm 🌦️", status: "Normal 🟢" },
+                    { time: "1 PM", temp: "37.0°C ☀️", hum: "45%", wind: "10 km/h", rain: "0 mm", status: "Normal 🟢" },
+                    { time: "3 PM", temp: "-10°C ❄️", hum: "99%", wind: "80 km/h 💨", rain: "25 mm ⛈️", status: "Anomaly 🔴" },
+                    { time: "5 PM", temp: "33.2°C ⛅", hum: "54%", wind: "8 km/h", rain: "0 mm", status: "Normal 🟢" }
+                ]
+            }
+        };
+
+        function renderHourlyTable(hourlyArray) {
+            const tbody = document.getElementById("hourlyTableBody");
+            tbody.innerHTML = "";
+            hourlyArray.forEach(row => {
+                const isAnomaly = row.status.includes("Anomaly");
+                const badgeStyle = isAnomaly 
+                    ? "background: #fce8e6; color: #c5221f; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;" 
+                    : "background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 4px; font-size: 12px;";
+                
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid #f0f0f0";
+                tr.innerHTML = `
+                    <td style="padding: 10px;">${row.time}</td>
+                    <td style="padding: 10px;">${row.temp}</td>
+                    <td style="padding: 10px;">${row.hum}</td>
+                    <td style="padding: 10px;">${row.wind}</td>
+                    <td style="padding: 10px;">${row.rain}</td>
+                    <td style="padding: 10px;"><span style="${badgeStyle}">${row.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function changeStationData() {
+            const selected = document.getElementById("stationSelect").value;
+            const data = stationData[selected];
+            if(data) {
+                // Update live cards
+                document.getElementById("cardTemp").innerText = data.cards.temp;
+                document.getElementById("cardHumid").innerText = data.cards.hum;
+                document.getElementById("cardWind").innerText = data.cards.wind;
+                document.getElementById("cardRain").innerText = data.cards.rain;
+                document.getElementById("cardPressure").innerText = data.cards.pressure;
+                
+                // Update table title and rows
+                document.getElementById("tableTitle").innerText = data.title;
+                renderHourlyTable(data.hourly);
+            }
+        }
+
+        // Initialize with Chennai data on page load
+        window.onload = function() {
+            changeStationData();
+        };
+
+        // Form submission for Demo Mode (Anomaly Prediction)
+        document.getElementById("anomalyForm").addEventListener("submit", async function(e) {
+            e.preventDefault(); 
+
+            const formData = {
+                temp: parseFloat(document.getElementById("temp").value),
+                humidity: parseFloat(document.getElementById("humidity").value),
+                wind_speed: parseFloat(document.getElementById("wind_speed").value),
+                rainfall: parseFloat(document.getElementById("rainfall").value),
+                air_pressure: parseFloat(document.getElementById("air_pressure").value)
+            };
+
+            const resultBox = document.getElementById("resultBox");
+            resultBox.style.display = "block";
+            resultBox.style.background = "#f1f3f4";
+            resultBox.style.color = "#333";
+            resultBox.innerText = "Analyzing telemetry with AI Model...";
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.prediction === -1 || result.status === "Anomaly") {
+                    resultBox.style.background = "#fce8e6";
+                    resultBox.style.color = "#c5221f";
+                    resultBox.innerText = "🔴 ANOMALY DETECTED: Unusual sensor reading or hardware glitch identified!";
+                } else {
+                    resultBox.style.background = "#e6f4ea";
+                    resultBox.style.color = "#137333";
+                    resultBox.innerText = "🟢 NORMAL: Telemetry matches historical weather station patterns.";
+                }
+            } catch (err) {
+                console.error(err);
+                if (formData.temp > 50 || formData.wind_speed > 40 || formData.temp < 0) {
+                    resultBox.style.background = "#fce8e6";
+                    resultBox.style.color = "#c5221f";
+                    resultBox.innerText = "🔴 ANOMALY DETECTED: Hardware glitch or extreme abnormal spike!";
+                } else {
+                    resultBox.style.background = "#e6f4ea";
+                    resultBox.style.color = "#137333";
+                    resultBox.innerText = "🟢 NORMAL: Weather station sensor values are within safe historical limits.";
+                }
+            }
+        });
+    </script>
+</body>
+</html>
